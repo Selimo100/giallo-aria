@@ -10,6 +10,9 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
+    "build:ftp": "next build",
+    "verify:static": "tsx scripts/verify-static-export.ts",
+    "preview:static": "npx serve out",
     "db:seed:sql": "tsx scripts/generate-seed.ts",
     "db:seed": "supabase db query --linked --file supabase/seed/seed.sql && supabase db query --linked --file supabase/seed/content.sql"
   },

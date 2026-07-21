@@ -4,7 +4,21 @@ import { SfondoDecorativo } from "@/components/ui";
 import { HomeButton } from "@/components/layout/HomeButton";
 import { ContentButton } from "@/components/layout/ContentButton";
 
+const FALLBACK_SITE_URL = "https://giallo-aria.mogicato.ch";
+
+// Tolerate a malformed / multi-value env var: take the first token and fall
+// back to the production domain if it is not a valid absolute URL.
+function resolveSiteUrl(): URL {
+  const raw = (process.env.NEXT_PUBLIC_SITE_URL ?? "").split(",")[0]?.trim();
+  try {
+    return new URL(raw || FALLBACK_SITE_URL);
+  } catch {
+    return new URL(FALLBACK_SITE_URL);
+  }
+}
+
 export const metadata: Metadata = {
+  metadataBase: resolveSiteUrl(),
   title: {
     default: "Giallo-Aria — Giochi, risate e un soffio di follia",
     template: "%s · Giallo-Aria",

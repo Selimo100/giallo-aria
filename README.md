@@ -32,12 +32,29 @@ only for the optional account/custom-content/admin backend.
 
 ```bash
 npm install
-npm run dev        # http://localhost:3000
-npm run build      # production build
-npm run typecheck  # tsc --noEmit
-npm run lint       # eslint
-npm test           # vitest unit tests
+npm run dev            # http://localhost:3000
+npm run build          # static export → out/
+npm run typecheck      # tsc --noEmit
+npm run lint           # eslint
+npm test               # vitest unit tests
+npm run verify:static  # validate the export in out/ (after build)
+npm run preview:static # serve out/ locally (npx serve out)
 ```
+
+## Deployment (production: https://giallo-aria.mogicato.ch)
+
+Giallo-Aria ships as a **fully static export** (`output: "export"`,
+`trailingSlash: true`) with **no server runtime, no API routes and no
+serverless functions**. Build locally and upload the contents of `out/` to any
+normal Apache/shared host over SFTP. The games run entirely in the browser, so
+the site works offline-after-load and from restrictive networks.
+
+See **[docs/FTP_DEPLOYMENT.md](docs/FTP_DEPLOYMENT.md)** for the full
+step-by-step guide. A ready-to-upload `giallo-aria-ftp-deploy.zip` is produced
+from `out/` (root = `index.html`, `_next/`, `giochi/`, `.htaccess`, …).
+
+> Netlify (`netlify.toml`) is **optional** and no longer the primary target;
+> the FTP static deployment does not depend on it.
 
 ## Try the games
 

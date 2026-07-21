@@ -9,7 +9,8 @@ import { usePathname } from "next/navigation";
 const NASCOSTO = ["/", "/giochi", "/partita/nuova"];
 
 export function HomeButton() {
-  const pathname = usePathname();
+  // trailingSlash: true means pathname can arrive as "/partita/nuova/".
+  const pathname = usePathname().replace(/(.)\/$/, "$1");
   if (NASCOSTO.includes(pathname)) return null;
 
   return (

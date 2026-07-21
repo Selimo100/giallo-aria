@@ -4,7 +4,6 @@ import {
   combinaFonti,
   scegliImpostori,
   mescola,
-  difficoltaConsentite,
 } from "@/lib/game-engine/selection";
 import type { ContenutoGioco } from "@/types/domain";
 
@@ -13,7 +12,6 @@ function c(partial: Partial<ContenutoGioco>): ContenutoGioco {
     id: partial.id ?? "x",
     gameType: "impostore",
     prompt: "p",
-    difficolta: partial.difficolta ?? "Facile",
     intensita: partial.intensita ?? "Tranquillo",
     categoria: partial.categoria,
   };
@@ -90,11 +88,5 @@ describe("mescola", () => {
     const a = [1, 2, 3];
     mescola(a);
     expect(a).toEqual([1, 2, 3]);
-  });
-});
-
-describe("difficoltaConsentite", () => {
-  it("include tutte le difficoltà fino al massimo", () => {
-    expect(difficoltaConsentite("Difficile")).toEqual(["Facile", "Medio", "Difficile"]);
   });
 });

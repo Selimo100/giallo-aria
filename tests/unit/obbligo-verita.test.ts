@@ -17,7 +17,6 @@ function d(p: Partial<ContenutoOV>): ContenutoOV {
     tipo: p.tipo ?? "dare",
     prompt: p.prompt ?? "prova",
     categoria: p.categoria ?? "Divertente",
-    difficolta: p.difficolta ?? "Facile",
     intensita: p.intensita ?? "Tranquillo",
     timerConsigliato: p.timerConsigliato,
     richiedeMovimento: p.richiedeMovimento,
@@ -29,7 +28,6 @@ function d(p: Partial<ContenutoOV>): ContenutoOV {
 
 const base: FiltriOV = {
   intensitaMax: "Caotico",
-  difficoltaMax: "Estremo",
   numGiocatori: 4,
 };
 
@@ -38,12 +36,6 @@ describe("filtraOV", () => {
     const items = [d({ id: "t", tipo: "truth" }), d({ id: "d", tipo: "dare" })];
     expect(filtraOV(items, "truth", base).map((x) => x.id)).toEqual(["t"]);
     expect(filtraOV(items, "dare", base).map((x) => x.id)).toEqual(["d"]);
-  });
-
-  it("rispetta la difficoltà massima", () => {
-    const items = [d({ id: "a", difficolta: "Facile" }), d({ id: "b", difficolta: "Estremo" })];
-    const res = filtraOV(items, "dare", { ...base, difficoltaMax: "Medio" });
-    expect(res.map((x) => x.id)).toEqual(["a"]);
   });
 
   it("rispetta l'intensità massima", () => {
@@ -97,10 +89,9 @@ describe("scegliAlternativaSicura", () => {
 });
 
 describe("puntiOV", () => {
-  it("verità = 1 punto", () => expect(puntiOV("truth", "Facile", false)).toBe(1));
-  it("obbligo = 2 punti", () => expect(puntiOV("dare", "Facile", false)).toBe(2));
-  it("obbligo difficile ha bonus", () => expect(puntiOV("dare", "Difficile", false)).toBe(3));
-  it("alternativa riduce ma non azzera", () => expect(puntiOV("dare", "Facile", true)).toBe(1));
+  it("verità = 1 punto", () => expect(puntiOV("truth", false)).toBe(1));
+  it("obbligo = 2 punti", () => expect(puntiOV("dare", false)).toBe(2));
+  it("alternativa riduce ma non azzera", () => expect(puntiOV("dare", true)).toBe(1));
 });
 
 describe("puoSaltare", () => {

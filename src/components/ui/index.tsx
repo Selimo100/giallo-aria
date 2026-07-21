@@ -250,7 +250,7 @@ export function Logo({
       width={dim.width}
       height={dim.height}
       priority={priority}
-      className={cx("h-auto w-auto", className)}
+      className={cx("h-auto max-w-full", className)}
     />
   );
 

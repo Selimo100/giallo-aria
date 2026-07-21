@@ -2,7 +2,11 @@
   "permissions": {
     "allow": [
       "Bash(git commit -q -m 'Add Giallo-Aria app: games, static export, Netlify config *)",
-      "Bash(git push *)"
+      "Bash(git push *)",
+      "Bash(node -e \"const d=JSON.parse\\(require\\('fs'\\).readFileSync\\(0\\)\\);d.forEach\\(f=>{f.messages.filter\\(m=>m.severity===2\\).forEach\\(m=>console.log\\(f.filePath.split\\('/going/'\\)[1]+':'+m.line+' ['+m.ruleId+']'\\)\\)}\\)\")",
+      "Bash(echo \"TYPECHECK_EXIT=$?\")",
+      "Bash(echo \"TC=$?\")",
+      "Bash(awk '{print $5,$9}')"
     ]
   }
 }

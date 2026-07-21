@@ -194,8 +194,9 @@ development you may disable *Confirm email* to speed up testing.
 
 **Dashboard → Authentication → URL Configuration:**
 
-- **Site URL:** `http://localhost:3000` (use your production URL in prod).
-- **Redirect URLs:** add `http://localhost:3000/**` and your production URL.
+- **Site URL:** `https://giallo-aria.mogicato.ch` (production).
+- **Redirect URLs:** add both `http://localhost:3000/**` and
+  `https://giallo-aria.mogicato.ch/**`.
 
 Magic links can be enabled later in the same Email provider panel.
 

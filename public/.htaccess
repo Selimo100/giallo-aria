@@ -1,0 +1,40 @@
+# Giallo-Aria — static export (Next.js output: "export", trailingSlash: true).
+# This site is a set of real static files and directories. It is NOT a single
+# page app: do NOT rewrite unknown paths to /index.html.
+
+DirectoryIndex index.html
+
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+
+  # Redirect an existing directory without a trailing slash to its slashed URL
+  # so directory-index resolution and internal links stay consistent.
+  RewriteCond %{REQUEST_FILENAME} -d
+  RewriteCond %{REQUEST_URI} !/$
+  RewriteRule ^ %{REQUEST_URI}/ [R=301,L]
+</IfModule>
+
+# Never list directory contents.
+Options -Indexes
+
+# Refuse to serve development files if they are ever uploaded by mistake.
+<FilesMatch "^(\.env.*|package\.json|package-lock\.json|tsconfig.*|netlify\.toml|vitest\.config\.ts|.*\.map)$">
+  Require all denied
+</FilesMatch>
+
+# Conservative security headers (safe for Supabase, videos, fonts).
+<IfModule mod_headers.c>
+  Header always set X-Content-Type-Options "nosniff"
+  Header always set Referrer-Policy "strict-origin-when-cross-origin"
+  Header always set X-Frame-Options "SAMEORIGIN"
+</IfModule>
+
+# Long-cache immutable build assets; let HTML revalidate.
+<IfModule mod_headers.c>
+  <FilesMatch "\.(?:js|css|woff2?|jpg|jpeg|png|gif|svg|webp|mp4|webm)$">
+    Header set Cache-Control "public, max-age=31536000, immutable"
+  </FilesMatch>
+  <FilesMatch "\.html$">
+    Header set Cache-Control "no-cache"
+  </FilesMatch>
+</IfModule>
