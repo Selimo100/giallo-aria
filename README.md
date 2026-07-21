@@ -1,36 +1,71 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Giallo-Aria 🎈
 
-## Getting Started
+_Giochi, risate e un soffio di follia._
 
-First, run the development server:
+Giallo-Aria is a local **one-shared-device** party-game platform, entirely in
+Italian. All players use a single phone or tablet: pass it around, reveal
+information privately, hide it again, play. **No rooms, no room codes, no second
+device, no realtime multiplayer** — by design.
+
+## Status
+
+This repository is a working **foundation + two fully-playable flagship games**.
+
+| Area | State |
+| --- | --- |
+| Design system, brand, light/dark, reduced-motion, safe-areas | ✅ |
+| i18n structure (Italian catalog, extensible) | ✅ |
+| Shared multi-step setup flow | ✅ |
+| Pass-the-phone private reveal (secrets removed from DOM on hide) | ✅ |
+| Local session persistence + safe restore (never re-shows a secret) | ✅ |
+| **L'Impostore** — full round loop, voting, final guess, scoring | ✅ playable offline |
+| **Chi è più probabile?** — group + private sequential voting | ✅ playable offline |
+| **Obbligo o Verità** — turns, choice, truth/dare, safe alternatives, timer, skips, scoring | ✅ playable offline |
+| Game engine + unit tests (31) | ✅ |
+| Supabase schema, RLS, weekly maintenance function | ✅ SQL migrations |
+| Other 6 modes, accounts/admin UI, DB seeding, Playwright E2E | ⏳ scaffolded / documented |
+
+Playable games run with **bundled Italian content and no network** — Supabase is
+only for the optional account/custom-content/admin backend.
+
+## Commands
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm install
+npm run dev        # http://localhost:3000
+npm run build      # production build
+npm run typecheck  # tsc --noEmit
+npm run lint       # eslint
+npm test           # vitest unit tests
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Try the games
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+1. Open `/` → **Gioca ora**.
+2. Setup wizard → pick **L'Impostore**, add 3+ players, choose levels, start.
+3. Pass the phone: each player reveals their card, then hides it before passing.
+4. Discuss, vote, reveal, score, next round.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Structure
 
-## Learn More
+```
+src/
+  app/               routes (landing, giochi, partita, static pages)
+  components/ui       design-system kit
+  components/games    PassaTelefono (reusable private reveal)
+  features/games      registry, SetupWizard, PartitaRunner, per-mode engines
+  features/content    bundled Italian official content
+  lib/game-engine     filtering / selection / shuffle (pure, tested)
+  lib/local-storage   safe public-only session persistence
+  messages/it.ts      Italian message catalog
+  types/domain.ts     shared domain types
+supabase/migrations   schema (0001), RLS (0002), maintenance (0003)
+supabase/seed         idempotent category seed
+tests/unit            engine unit tests
+docs/SUPABASE_SETUP.md  full backend setup guide
+```
 
-To learn more about Next.js, take a look at the following resources:
+## Backend
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+See [docs/SUPABASE_SETUP.md](docs/SUPABASE_SETUP.md).
+# giallo-aria
