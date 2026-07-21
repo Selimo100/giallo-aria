@@ -1,0 +1,47 @@
+import type { ContenutoGioco, Intensita } from "@/types/domain";
+
+// "Non ho mai" statements.
+const raw: Array<[string, Intensita, number]> = [
+  ["inviato un messaggio alla persona sbagliata", "Divertente", 13],
+  ["riso così tanto da piangere", "Tranquillo", 0],
+  ["dimenticato il nome di qualcuno appena presentato", "Tranquillo", 0],
+  ["fatto finta di aver capito una barzelletta", "Divertente", 0],
+  ["mangiato qualcosa caduto per terra", "Divertente", 0],
+  ["cantato a squarciagola pensando di essere solo", "Divertente", 0],
+  ["dormito durante un film al cinema", "Tranquillo", 0],
+  ["salutato una persona che non mi salutava", "Divertente", 0],
+  ["fatto un regalo riciclato", "Divertente", 13],
+  ["finto di essere malato per saltare qualcosa", "Audace", 13],
+  ["parlato da solo per strada", "Divertente", 0],
+  ["dimenticato dove avevo parcheggiato", "Tranquillo", 0],
+  ["mandato un messaggio e subito rimpianto di averlo fatto", "Audace", 13],
+  ["fatto una figuraccia inciampando in pubblico", "Divertente", 0],
+  ["riso nel momento più sbagliato possibile", "Divertente", 13],
+  ["guardato la stessa serie per la terza volta", "Tranquillo", 0],
+  ["pianto guardando un cartone animato", "Tranquillo", 0],
+  ["dimenticato un compleanno importante", "Audace", 13],
+  ["messo like a una foto molto vecchia per sbaglio", "Audace", 16],
+  ["cambiato strada per evitare qualcuno", "Audace", 13],
+  ["mangiato l'ultima fetta di torta di nascosto", "Divertente", 0],
+  ["fatto finta di ridere a una battuta non capita", "Divertente", 0],
+  ["perso una scommessa sciocca", "Divertente", 13],
+  ["confuso due gemelli", "Tranquillo", 0],
+  ["dimenticato le chiavi dentro casa", "Tranquillo", 0],
+  ["mandato un vocale lunghissimo per errore", "Divertente", 13],
+  ["ballato da solo in camera", "Divertente", 0],
+  ["risposto 'anche a te' quando non c'entrava nulla", "Divertente", 13],
+  ["fatto una promessa e dimenticata subito", "Audace", 13],
+  ["comprato qualcosa di inutile solo perché in offerta", "Divertente", 16],
+  ["esagerato in una storia per farla più bella", "Audace", 16],
+  ["fatto finta di non vedere una chiamata", "Audace", 16],
+  ["provato a fare un dolce ed è stato un disastro", "Divertente", 0],
+  ["dimenticato completamente un appuntamento", "Audace", 16],
+  ["cantato la canzone sbagliata con sicurezza", "Divertente", 0],
+];
+
+export const STATEMENTS_NON_HO_MAI: ContenutoGioco[] = raw.map(([testo, intensita], i) => ({
+  id: `nhm-${i}`,
+  gameType: "non-ho-mai",
+  prompt: `Non ho mai ${testo}.`,
+  intensita,
+}));

@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git commit -q -m 'Add Giallo-Aria app: games, static export, Netlify config *)",
+      "Bash(git push *)"
+    ]
+  }
+}

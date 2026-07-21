@@ -1,26 +1,150 @@
 @import "tailwindcss";
 
+/*
+  Giallo-Aria design system — "carte sul tavolo nero".
+  A physical party-card-game visual language: black game-night table,
+  white and coloured card faces, thick flat outlines, heavy typography,
+  no gradients, no glass, no soft shadows.
+
+  Design tokens live as CSS custom properties, exposed to Tailwind via @theme.
+  Legacy semantic aliases (testo, superficie, giallo, cielo, …) are kept and
+  remapped onto the new palette so the whole application inherits the new look
+  through the utilities it already uses. Text-colour tokens default to the
+  *dark table* (light text); the Card component locally re-declares them to
+  dark values so text on white/coloured card faces stays readable.
+*/
+
+@theme {
+  /* Core surfaces */
+  --color-game-night-black: #000000;
+  --color-card-white: #ffffff;
+
+  /* Brand accents */
+  --color-signal-red: #fe2f2f;
+  --color-royal-violet: #7333f1;
+  --color-antique-gold: #d7b73b;
+
+  /* Playing-card faces */
+  --color-lemon-card: #fffe5b;
+  --color-lavender-card: #ede5ff;
+  --color-cobalt-card: #1b5bff;
+  --color-sky-card: #a0e9ff;
+  --color-bubblegum-card: #ffa0f0;
+  --color-mint-card: #b4ff91;
+  --color-tangerine-card: #ff9559;
+
+  /* ---- Legacy semantic aliases → new palette -------------------------- */
+  /* Brand */
+  --color-giallo: #fffe5b;        /* lemon card */
+  --color-giallo-scuro: #d7b73b;  /* antique gold */
+  --color-cielo: #a0e9ff;         /* sky card */
+  --color-cielo-scuro: #1b5bff;   /* cobalt */
+  --color-corallo: #fe2f2f;       /* signal red */
+  --color-menta: #b4ff91;         /* mint card */
+  --color-viola: #7333f1;         /* royal violet */
+
+  /* Surfaces */
+  --color-crema: #000000;         /* page = game-night table */
+  --color-superficie: #ffffff;    /* card face */
+  --color-superficie-2: #ede5ff;  /* soft card face (lavender) */
+  --color-bordo: #000000;         /* card outline / divider */
+
+  /* Text — DEFAULTS ARE FOR THE DARK TABLE (light text). Cards override. */
+  --color-testo: #ffffff;
+  --color-testo-morbido: #b9b9b9;
+
+  /* Radius */
+  --radius-card: 13px;
+  --radius-pill: 999px;
+  --radius-lg: 10px;
+  --radius-xl: 13px;
+  --radius-2xl: 20px;
+  --radius-3xl: 28px;
+  --radius-control: 38px;
+
+  /* "Elevation" is now a flat inset outline, not a drop shadow. */
+  --shadow-morbida: rgb(0 0 0) 0 0 0 2px inset;
+  --shadow-galleggiante: rgb(0 0 0) 0 0 0 3px inset;
+
+  /* Typography — legal fallback stack, heavy grotesk voice. */
+  --font-titolo: "Helvetica Neue", Helvetica, Arial, "Inter",
+    ui-sans-serif, system-ui, sans-serif;
+  --font-corpo: "Helvetica Neue", Helvetica, Arial, "Inter",
+    ui-sans-serif, system-ui, sans-serif;
+
+  --ease-morbida: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  color-scheme: dark;
+
+  /* Semantic helpers used by hand-written components. */
+  --surface-page: var(--color-game-night-black);
+  --surface-card: var(--color-card-white);
+  --text-on-dark: var(--color-card-white);
+  --text-on-light: var(--color-game-night-black);
+  --page-max-width: 1200px;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+/* The application is a single dark table: no light-mode inversion. */
+html {
+  -webkit-tap-highlight-color: transparent;
+  background-color: #000000;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background-color: var(--color-game-night-black);
+  color: var(--color-testo);
+  font-family: var(--font-corpo);
+  font-weight: 500;
+  min-height: 100dvh;
+}
+
+h1, h2, h3, .font-titolo {
+  font-family: var(--font-titolo);
+  letter-spacing: -0.01em;
+}
+
+/* Heavy display voice for headings. */
+h1 { font-weight: 800; }
+
+/* Any light card face re-declares the text tokens so children (which use
+   text-testo / text-testo-morbido utilities) render dark automatically. */
+.on-light {
+  --color-testo: #000000;
+  --color-testo-morbido: #565656;
+}
+.on-dark {
+  --color-testo: #ffffff;
+  --color-testo-morbido: #c9c9c9;
+}
+
+:focus-visible {
+  outline: 3px solid var(--color-lemon-card);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* Card deal-in — the only default entrance motion. */
+@keyframes carta-entra {
+  from { opacity: 0; transform: translateY(16px) rotate(-2deg); }
+  to   { opacity: 1; transform: translateY(0) rotate(0); }
+}
+@keyframes carta-flip {
+  from { transform: rotateY(90deg); opacity: 0; }
+  to   { transform: rotateY(0); opacity: 1; }
+}
+.anim-entra { animation: carta-entra 0.35s var(--ease-morbida) both; }
+.anim-flip  { animation: carta-flip 0.4s var(--ease-morbida) both; }
+
+/* Legacy floating classes are neutralised — no continuous motion. */
+.anim-galleggia,
+.anim-brezza { animation: none; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
 }
