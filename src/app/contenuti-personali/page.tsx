@@ -1,7 +1,6 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import Link from "next/link";
 import { Button, Card, Badge, Logo } from "@/components/ui";
 import { GIOCHI } from "@/features/games/registry";
 import { CATEGORIE_IMPOSTORE } from "@/features/content/impostore";
@@ -157,7 +156,7 @@ export default function ContenutiPersonaliPage() {
   const nomeGioco = (slug: GameSlug) => GIOCHI.find((g) => g.slug === slug)?.nome ?? slug;
 
   return (
-    <main className="mx-auto max-w-2xl px-5 pb-24"> <header className="flex items-center justify-between py-6"> <Link href="/"><Logo size="text-2xl" /></Link> </header> <h1 className="font-titolo text-3xl font-extrabold">I miei contenuti</h1> <p className="mt-2 text-testo-morbido"> Crea le tue parole, domande e sfide. Restano su questo dispositivo e vengono
+    <main className="mx-auto max-w-2xl px-5 pb-24"> <header className="flex items-center justify-between py-6"> <Logo size="text-2xl" /> </header> <h1 className="font-titolo text-3xl font-extrabold">I miei contenuti</h1> <p className="mt-2 text-testo-morbido"> Crea le tue parole, domande e sfide. Sono condivise con tutti e vengono
         aggiunte automaticamente alle partite (puoi disattivarle quando vuoi).
       </p> {/* --- Creazione --- */}
       <Card className="mt-6 space-y-5"> <div> <p className="mb-2 font-semibold">Per quale gioco?</p> <div className="flex flex-wrap gap-2"> {GIOCHI_CONTENUTO.map((g) => (

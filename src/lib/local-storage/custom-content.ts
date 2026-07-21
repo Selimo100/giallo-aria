@@ -7,30 +7,93 @@ import type {
   ParolaIndovina,
   TipoContenutoOV,
 } from "@/types/domain";
+import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 
-// Local, account-free store for user-created content, kept on the device.
-// Reactive: components subscribe via useContenutiPersonali (useSyncExternalStore).
+// Shared, account-free store for user-created content. The single source of
+// truth is the Supabase `shared_content` table (one global pool everyone reads
+// and writes). We keep an in-memory cache so the reactive store API stays
+// synchronous; writes are optimistic and mirrored to Supabase in the
+// background. See migration 0008_shared_content.sql.
 
-const KEY = "giallo-aria:contenuti";
+const TABLE = "shared_content";
 const EMPTY: ContenutoPersonale[] = [];
-const EVENT = "ga:contenuti";
 
-let cache: ContenutoPersonale[] | null = null;
+let cache: ContenutoPersonale[] = EMPTY;
+const listeners = new Set<() => void>();
+let hydrated = false;
 
-function read(): ContenutoPersonale[] {
-  if (typeof window === "undefined") return EMPTY;
-  try {
-    const s = window.localStorage.getItem(KEY);
-    const parsed = s ? (JSON.parse(s) as ContenutoPersonale[]) : [];
-    return Array.isArray(parsed) ? parsed : [];
-  } catch {
-    return [];
-  }
+function emit(): void {
+  for (const listener of listeners) listener();
 }
 
-/** Stable snapshot for the current tab (cached until the next write). */
+type Row = {
+  id: string;
+  game_type: string;
+  tipo: string | null;
+  prompt: string;
+  categoria: string | null;
+  intensita: string;
+  timer_consigliato: number | null;
+  richiede_movimento: boolean | null;
+  safe_alternative: string | null;
+  suggerimento: string | null;
+  attivo: boolean;
+  creato: number;
+};
+
+function rowToItem(r: Row): ContenutoPersonale {
+  return {
+    id: r.id,
+    gameType: r.game_type as GameSlug,
+    tipo: (r.tipo as TipoContenutoOV | null) ?? undefined,
+    prompt: r.prompt,
+    categoria: r.categoria ?? "",
+    intensita: r.intensita as ContenutoPersonale["intensita"],
+    timerConsigliato: r.timer_consigliato ?? undefined,
+    richiedeMovimento: r.richiede_movimento ?? undefined,
+    safeAlternative: r.safe_alternative ?? undefined,
+    suggerimento: r.suggerimento ?? undefined,
+    attivo: r.attivo,
+    creato: r.creato,
+  };
+}
+
+function itemToRow(c: ContenutoPersonale): Row {
+  return {
+    id: c.id,
+    game_type: c.gameType,
+    tipo: c.tipo ?? null,
+    prompt: c.prompt,
+    categoria: c.categoria ?? "",
+    intensita: c.intensita,
+    timer_consigliato: c.timerConsigliato ?? null,
+    richiede_movimento: c.richiedeMovimento ?? null,
+    safe_alternative: c.safeAlternative ?? null,
+    suggerimento: c.suggerimento ?? null,
+    attivo: c.attivo,
+    creato: c.creato,
+  };
+}
+
+async function hydrate(): Promise<void> {
+  const sb = getSupabaseBrowserClient();
+  if (!sb) return;
+  const { data, error } = await sb.from(TABLE).select("*").order("creato", { ascending: false });
+  if (error) {
+    console.warn("[contenuti] impossibile caricare i contenuti condivisi:", error.message);
+    return;
+  }
+  cache = (data as Row[] | null)?.map(rowToItem) ?? EMPTY;
+  emit();
+}
+
+/** Re-fetch the shared pool from Supabase (e.g. on focus / manual refresh). */
+export function refreshContenuti(): void {
+  void hydrate();
+}
+
+/** Stable snapshot for the current render (mutated only on hydrate/write). */
 export function getContenuti(): ContenutoPersonale[] {
-  if (cache === null) cache = read();
   return cache;
 }
 
@@ -38,28 +101,20 @@ export function getServerContenuti(): ContenutoPersonale[] {
   return EMPTY;
 }
 
-function commit(list: ContenutoPersonale[]): void {
-  cache = list;
-  if (typeof window === "undefined") return;
-  try {
-    window.localStorage.setItem(KEY, JSON.stringify(list));
-  } catch {
-    /* storage full/disabled */
+export function subscribeContenuti(onChange: () => void): () => void {
+  listeners.add(onChange);
+  if (!hydrated) {
+    hydrated = true;
+    void hydrate();
   }
-  window.dispatchEvent(new Event(EVENT));
+  return () => {
+    listeners.delete(onChange);
+  };
 }
 
-export function subscribeContenuti(onChange: () => void): () => void {
-  const handler = () => {
-    cache = null; // invalidate so the next getContenuti re-reads
-    onChange();
-  };
-  window.addEventListener(EVENT, onChange); // same-tab writes keep cache fresh
-  window.addEventListener("storage", handler); // other tabs
-  return () => {
-    window.removeEventListener(EVENT, onChange);
-    window.removeEventListener("storage", handler);
-  };
+function setCache(list: ContenutoPersonale[]): void {
+  cache = list;
+  emit();
 }
 
 export function aggiungiContenuto(
@@ -71,20 +126,62 @@ export function aggiungiContenuto(
     attivo: input.attivo ?? true,
     creato: Date.now(),
   };
-  commit([nuovo, ...getContenuti()]);
+  setCache([nuovo, ...cache]); // optimistic
+  const sb = getSupabaseBrowserClient();
+  if (sb) {
+    void sb
+      .from(TABLE)
+      .insert(itemToRow(nuovo))
+      .then(({ error }) => {
+        if (error) {
+          console.warn("[contenuti] salvataggio non riuscito:", error.message);
+          void hydrate(); // reconcile with the server
+        }
+      });
+  }
   return nuovo;
 }
 
 export function aggiornaContenuto(id: string, patch: Partial<ContenutoPersonale>): void {
-  commit(getContenuti().map((c) => (c.id === id ? { ...c, ...patch, id: c.id } : c)));
+  const updated = cache.map((c) => (c.id === id ? { ...c, ...patch, id: c.id } : c));
+  setCache(updated);
+  const item = updated.find((c) => c.id === id);
+  const sb = getSupabaseBrowserClient();
+  if (sb && item) {
+    void sb
+      .from(TABLE)
+      .update(itemToRow(item))
+      .eq("id", id)
+      .then(({ error }) => {
+        if (error) {
+          console.warn("[contenuti] aggiornamento non riuscito:", error.message);
+          void hydrate();
+        }
+      });
+  }
 }
 
 export function rimuoviContenuto(id: string): void {
-  commit(getContenuti().filter((c) => c.id !== id));
+  setCache(cache.filter((c) => c.id !== id));
+  const sb = getSupabaseBrowserClient();
+  if (sb) {
+    void sb
+      .from(TABLE)
+      .delete()
+      .eq("id", id)
+      .then(({ error }) => {
+        if (error) {
+          console.warn("[contenuti] eliminazione non riuscita:", error.message);
+          void hydrate();
+        }
+      });
+  }
 }
 
 export function toggleContenuto(id: string): void {
-  commit(getContenuti().map((c) => (c.id === id ? { ...c, attivo: !c.attivo } : c)));
+  const item = cache.find((c) => c.id === id);
+  if (!item) return;
+  aggiornaContenuto(id, { attivo: !item.attivo });
 }
 
 // ---------- converters into per-game content shapes ----------

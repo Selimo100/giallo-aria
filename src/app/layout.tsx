@@ -20,7 +20,7 @@ function resolveSiteUrl(): URL {
 export const metadata: Metadata = {
   metadataBase: resolveSiteUrl(),
   title: {
-    default: "Giallo-Aria — Giochi, risate e un soffio di follia",
+    default: "Giallo-Aria",
     template: "%s · Giallo-Aria",
   },
   description:

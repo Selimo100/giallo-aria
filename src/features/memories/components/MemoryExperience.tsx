@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import Image from "next/image";
 import { Button, Card, PlayingCard, Badge } from "@/components/ui";
 import { memoryMedia, type MemoryMediaItem } from "@/features/memories/data/memory-media";
@@ -19,7 +19,9 @@ import {
 import {
   addLocalMemoryNote,
   getLocalMemoryNotes,
+  getServerMemoryNotes,
   removeLocalMemoryNote,
+  subscribeMemoryNotes,
   updateLocalMemoryNote,
 } from "@/lib/local-storage/memory-notes";
 
@@ -42,7 +44,12 @@ function posterAltFor(item: MemoryMediaItem): string {
 }
 
 export function MemoryExperience() {
-  const [notes, setNotes] = useState<MemoryNoteRecord[]>([]);
+  const rawNotes = useSyncExternalStore(
+    subscribeMemoryNotes,
+    getLocalMemoryNotes,
+    getServerMemoryNotes,
+  );
+  const notes = useMemo(() => sortMemoryNotes(rawNotes), [rawNotes]);
   const [selectedMediaId, setSelectedMediaId] = useState<string | null>(null);
   const [activeVideoId, setActiveVideoId] = useState<string | null>(null);
   const [draft, setDraft] = useState<NoteDraft>({ title: "", body: "", mediaId: "" });
@@ -59,10 +66,6 @@ export function MemoryExperience() {
         player.pause();
       }
     };
-  }, []);
-
-  useEffect(() => {
-    setNotes(sortMemoryNotes(getLocalMemoryNotes()));
   }, []);
 
   function registerVideo(id: string, node: HTMLVideoElement | null) {
@@ -138,21 +141,11 @@ export function MemoryExperience() {
       return;
     }
 
-    if (editingId) {
-      setNotes((current) =>
-        sortMemoryNotes(
-          current.map((currentNote) => (currentNote.id === note.id ? note : currentNote)),
-        ),
-      );
-    } else {
-      setNotes((current) => sortMemoryNotes([note, ...current]));
-    }
     resetDraft();
   }
 
   async function deleteNote(id: string) {
     removeLocalMemoryNote(id);
-    setNotes((current) => current.filter((note) => note.id !== id));
     if (editingId === id) resetDraft();
   }
 

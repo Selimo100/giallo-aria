@@ -2,14 +2,19 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { MemoryExperience } from "@/features/memories/components/MemoryExperience";
-import { addLocalMemoryNote } from "@/lib/local-storage/memory-notes";
+import {
+  __resetMemoryNotesForTests,
+  addLocalMemoryNote,
+  getLocalMemoryNotes,
+} from "@/lib/local-storage/memory-notes";
 
-// The memory experience is fully static: hardcoded media plus private notes
-// persisted in the browser's localStorage. No backend, no fetch, no props.
+// The memory experience reads/writes the shared memory-notes store. With no
+// Supabase env in tests, the store falls back to its in-memory cache, so we can
+// exercise the reactive UI without a network. We reset the cache per test.
 describe("MemoryExperience", () => {
   beforeEach(() => {
     vi.restoreAllMocks();
-    window.localStorage.clear();
+    __resetMemoryNotesForTests();
   });
 
   it("renderizza una galleria mista di foto e video", () => {
@@ -28,7 +33,7 @@ describe("MemoryExperience", () => {
     });
   });
 
-  it("mostra all'avvio le note già salvate localmente", () => {
+  it("mostra le note già presenti nello store condiviso", () => {
     addLocalMemoryNote({ body: "Testo della nota", mediaId: "memory-photo-01", title: "Ricordo" });
     render(<MemoryExperience />);
     expect(screen.getByText("Ricordo")).toBeInTheDocument();
@@ -36,28 +41,14 @@ describe("MemoryExperience", () => {
   });
 
   it("mostra il fallback quando il media collegato non esiste più", () => {
-    // A note whose linked media id is no longer part of the bundled gallery.
-    window.localStorage.setItem(
-      "giallo-aria:memory-notes",
-      JSON.stringify([
-        {
-          id: "note-2",
-          user_id: "locale",
-          title: null,
-          body: "Testo",
-          media_id: "media-rimosso",
-          created_at: "2026-06-01T10:00:00.000Z",
-          updated_at: "2026-06-01T10:00:00.000Z",
-        },
-      ]),
-    );
+    addLocalMemoryNote({ body: "Testo", mediaId: "media-rimosso" });
     render(<MemoryExperience />);
     expect(
       screen.getByText("Questo ricordo multimediale non è più disponibile."),
     ).toBeInTheDocument();
   });
 
-  it("crea una nota e la salva in localStorage", async () => {
+  it("crea una nota e la aggiunge allo store", async () => {
     render(<MemoryExperience />);
     fireEvent.change(screen.getByLabelText("Titolo facoltativo"), { target: { value: "Titolo" } });
     fireEvent.change(screen.getByLabelText("Ricordo personale"), {
@@ -72,7 +63,7 @@ describe("MemoryExperience", () => {
       expect(screen.getByText("Un ricordo scritto bene.")).toBeInTheDocument();
     });
 
-    const stored = JSON.parse(window.localStorage.getItem("giallo-aria:memory-notes") ?? "[]");
+    const stored = getLocalMemoryNotes();
     expect(stored).toHaveLength(1);
     expect(stored[0]).toMatchObject({
       title: "Titolo",

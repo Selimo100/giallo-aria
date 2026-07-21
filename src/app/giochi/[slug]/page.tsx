@@ -33,7 +33,7 @@ export default async function GiocoPage({
   return (
     <main className="mx-auto max-w-xl px-5 pb-16">
       <header className="flex items-center justify-between py-6">
-        <Link href="/giochi"><Logo size="text-xl" /></Link>
+        <Link href="/giochi"><Logo size="text-xl" link={false} /></Link>
       </header>
 
       <div className="anim-entra mx-auto max-w-[16rem]">

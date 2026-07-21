@@ -80,7 +80,15 @@ for (const rel of ["logo_horizontal.png", "logo_icon.png", "icon.png", "apple-ic
 check("no .env in out/", !existsSync(join(out, ".env")) && !existsSync(join(out, ".env.local")));
 
 // Scan every exported text file for forbidden markers.
-const forbidden = ["SUPABASE_SERVICE_ROLE_KEY", "CRON_SECRET", "giallo-aria.netlify.app", "/api/"];
+// Note: a bare "/api/" appears inside the bundled Supabase client, so we only
+// flag calls to this app's *own* former Next.js API routes.
+const forbidden = [
+  "SUPABASE_SERVICE_ROLE_KEY",
+  "CRON_SECRET",
+  "giallo-aria.netlify.app",
+  "/api/memory-notes",
+  "/api/personal-content",
+];
 function walk(dir: string): string[] {
   return readdirSync(dir).flatMap((name) => {
     const full = join(dir, name);

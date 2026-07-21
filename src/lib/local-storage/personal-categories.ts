@@ -1,29 +1,62 @@
 import type { CategoriaPersonale, GameSlug } from "@/types/domain";
+import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 
-// Local, account-free store for user-created categories, kept on the device.
-// Mirrors the reactive pattern of custom-content.ts. When signed in these map
-// to the Supabase `personal_categories` table (see migration 0005), but the
-// running app is device-local like the rest of the personal content.
+// Shared, account-free store for user-created categories. Source of truth is
+// the Supabase `shared_categories` table (one global pool). Same optimistic
+// cache pattern as custom-content.ts. See migration 0008_shared_content.sql.
 
-const KEY = "giallo-aria:categorie";
+const TABLE = "shared_categories";
 const EMPTY: CategoriaPersonale[] = [];
-const EVENT = "ga:categorie";
 
-let cache: CategoriaPersonale[] | null = null;
+let cache: CategoriaPersonale[] = EMPTY;
+const listeners = new Set<() => void>();
+let hydrated = false;
 
-function read(): CategoriaPersonale[] {
-  if (typeof window === "undefined") return EMPTY;
-  try {
-    const s = window.localStorage.getItem(KEY);
-    const parsed = s ? (JSON.parse(s) as CategoriaPersonale[]) : [];
-    return Array.isArray(parsed) ? parsed : [];
-  } catch {
-    return [];
+function emit(): void {
+  for (const listener of listeners) listener();
+}
+
+type Row = {
+  id: string;
+  game_type: string;
+  nome: string;
+  archiviata: boolean;
+  creato: number;
+};
+
+function rowToItem(r: Row): CategoriaPersonale {
+  return {
+    id: r.id,
+    gameType: r.game_type as GameSlug,
+    nome: r.nome,
+    archiviata: r.archiviata,
+    creato: r.creato,
+  };
+}
+
+function itemToRow(c: CategoriaPersonale): Row {
+  return {
+    id: c.id,
+    game_type: c.gameType,
+    nome: c.nome,
+    archiviata: c.archiviata,
+    creato: c.creato,
+  };
+}
+
+async function hydrate(): Promise<void> {
+  const sb = getSupabaseBrowserClient();
+  if (!sb) return;
+  const { data, error } = await sb.from(TABLE).select("*").order("creato", { ascending: false });
+  if (error) {
+    console.warn("[categorie] impossibile caricare le categorie condivise:", error.message);
+    return;
   }
+  cache = (data as Row[] | null)?.map(rowToItem) ?? EMPTY;
+  emit();
 }
 
 export function getCategorie(): CategoriaPersonale[] {
-  if (cache === null) cache = read();
   return cache;
 }
 
@@ -31,28 +64,39 @@ export function getServerCategorie(): CategoriaPersonale[] {
   return EMPTY;
 }
 
-function commit(list: CategoriaPersonale[]): void {
-  cache = list;
-  if (typeof window === "undefined") return;
-  try {
-    window.localStorage.setItem(KEY, JSON.stringify(list));
-  } catch {
-    /* storage full/disabled */
+export function subscribeCategorie(onChange: () => void): () => void {
+  listeners.add(onChange);
+  if (!hydrated) {
+    hydrated = true;
+    void hydrate();
   }
-  window.dispatchEvent(new Event(EVENT));
+  return () => {
+    listeners.delete(onChange);
+  };
 }
 
-export function subscribeCategorie(onChange: () => void): () => void {
-  const handler = () => {
-    cache = null;
-    onChange();
-  };
-  window.addEventListener(EVENT, onChange);
-  window.addEventListener("storage", handler);
-  return () => {
-    window.removeEventListener(EVENT, onChange);
-    window.removeEventListener("storage", handler);
-  };
+function setCache(list: CategoriaPersonale[]): void {
+  cache = list;
+  emit();
+}
+
+function pushRow(c: CategoriaPersonale): void {
+  const sb = getSupabaseBrowserClient();
+  if (!sb) return;
+  void sb
+    .from(TABLE)
+    .upsert(itemToRow(c))
+    .then(({ error }) => {
+      if (error) {
+        console.warn("[categorie] salvataggio non riuscito:", error.message);
+        void hydrate();
+      }
+    });
+}
+
+function commit(list: CategoriaPersonale[]): void {
+  cache = list;
+  emit();
 }
 
 /** Categories the user created for a game (optionally including archived). */
@@ -80,20 +124,40 @@ export function aggiungiCategoria(gameType: GameSlug, nome: string): CategoriaPe
     archiviata: false,
     creato: Date.now(),
   };
-  commit([nuova, ...getCategorie()]);
+  commit([nuova, ...cache]);
+  pushRow(nuova);
   return nuova;
 }
 
 export function rinominaCategoria(id: string, nome: string): void {
   const n = nome.trim();
   if (!n) return;
-  commit(getCategorie().map((c) => (c.id === id ? { ...c, nome: n } : c)));
+  const updated = cache.map((c) => (c.id === id ? { ...c, nome: n } : c));
+  commit(updated);
+  const item = updated.find((c) => c.id === id);
+  if (item) pushRow(item);
 }
 
 export function archiviaCategoria(id: string, archiviata: boolean): void {
-  commit(getCategorie().map((c) => (c.id === id ? { ...c, archiviata } : c)));
+  const updated = cache.map((c) => (c.id === id ? { ...c, archiviata } : c));
+  commit(updated);
+  const item = updated.find((c) => c.id === id);
+  if (item) pushRow(item);
 }
 
 export function eliminaCategoria(id: string): void {
-  commit(getCategorie().filter((c) => c.id !== id));
+  setCache(cache.filter((c) => c.id !== id));
+  const sb = getSupabaseBrowserClient();
+  if (sb) {
+    void sb
+      .from(TABLE)
+      .delete()
+      .eq("id", id)
+      .then(({ error }) => {
+        if (error) {
+          console.warn("[categorie] eliminazione non riuscita:", error.message);
+          void hydrate();
+        }
+      });
+  }
 }
